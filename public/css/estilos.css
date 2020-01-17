@@ -1,0 +1,43 @@
+body{
+    background-color: #243e52;
+    color:rgba(255,255,255,.5);
+}
+h1,h2,h3{
+    color: rgba(255,255,255,.5);
+}
+.menu-container{
+    min-height: 100vh;
+}
+.list-group-item {
+    color:rgba(255,255,255,.5);
+    text-align: center;
+    background-color: transparent;
+    border: 1px solid rgba(255,255,255,.5);
+}
+.btn-outline-secondary {
+    color: rgba(255,255,255,.5);
+    border-color: rgba(255,255,255,.5);
+}
+.btn-primary {
+    color: #243e52;
+    background-color: #ffffff;
+    border-color: #ffffff;
+}
+.btn-primary:hover,
+.btn-primary:active {
+    color: #fff;
+    background-color: #102433;
+    border-color: #102433;
+}
+.file_container{
+    text-align: center;
+    border: 1px rgba(255,255,255,.5) dashed;
+    padding: 15px;
+    cursor: pointer;
+}
+.file_container:hover{
+    background-color: rgba(0,0,0,0.1);
+}
+.file_container svg{
+    font-size: 36px;
+}
