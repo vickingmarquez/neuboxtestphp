@@ -30,35 +30,68 @@ class MainController extends Controller
 						$maxDif = 0;
 						$puntero = 0;
 						foreach ($array as $indice => $valor) {
-							if( $indice == 0 ){
-								$limit = intval($valor);
-							}
-							if( $limit >= $indice && $indice > 0 ){
-								$puntuaciones = explode(" ", $valor);
-								if(count($puntuaciones) > 2){
+							$valor = str_replace(array("\r", "\n"), '', $valor);							
+							if( $indice == 0 ){								
+								if(is_numeric($valor)){
+									$limit = intval($valor);
+								} else {
 									return response()->json([
 										'status' => 0,
-										'respuesta' => 'Se excede el numero de jugadores en la ronda '.($indice+1),
+										'respuesta' => 'El valor indicado para el numero rondas debe ser numerico (renglon 1)',
 									]);
 									break;
-								} else {
-									$players[0] = $players[0] + intval($puntuaciones[0]);
-									$players[1] = $players[1] + intval($puntuaciones[1]);
-									$diferencia = max($players) - min($players); 
-									if($diferencia > $maxDif){
-										$maxDif = $diferencia;
-										if( $players[0] > $players[1] ){
-											$puntero = 1;
+								}	
+							} else {
+								if( $limit >= $indice ){
+									$puntuaciones = explode(" ", $valor);
+									if(count($puntuaciones) > 2){
+										return response()->json([
+											'status' => 0,
+											'respuesta' => 'Se excede el numero de jugadores en la ronda '.$indice,
+										]);
+										break;
+									} else {
+										if(is_numeric($puntuaciones[0]) && is_numeric($puntuaciones[1])){
+											$players[0] = $players[0] + intval($puntuaciones[0]);
+											$players[1] = $players[1] + intval($puntuaciones[1]);
+											$diferencia = max($players) - min($players); 
+											if($diferencia > $maxDif){
+												$maxDif = $diferencia;
+												if( $players[0] > $players[1] ){
+													$puntero = 1;
+												} else {
+													$puntero = 2;
+												}
+											}
 										} else {
-											$puntero = 2;
-										}
-									}
-								}								
-							}
+											return response()->json([
+												'status' => 0,
+												'respuesta' => 'Los valores en las puntuaciones deben ser numericos (verifica ronda '.$indice.')',
+											]);
+											break;
+										}										
+									}								
+								}
+							}						
 						}
+						//Limite y mínimo de rondas
+						if(count($array) > ($limit+1)){
+							return response()->json([
+								'status' => 0,
+								'respuesta' => 'Se ha excedido el numero de rondas "'.$limit.'" indicado en el archivo (renglón 1)',
+							]);
+						}
+						if(count($array) < ($limit+1)){
+							return response()->json([
+								'status' => 0,
+								'respuesta' => 'Se deben colocar el numero de "'.$limit.'" rondas con puntuaciones, como se indico en el archivo (renglon 1)',
+							]);
+						}
+						//Todo OK
 						return response()->json([
 							'status' => 1,
 							'respuesta' => $puntero .' '. $maxDif,
+							'check' => $players
 						]);
 					} else {
 						return response()->json([
@@ -101,18 +134,25 @@ class MainController extends Controller
 								case 0:
 									$lineOne = explode(" ", $valor);
 									//Minimo de caracteres
-									if(intval($lineOne[0]) < 2 || intval($lineOne[1]) < 2){
+									if(intval($lineOne[0]) < 2 || intval($lineOne[0]) > 50){
 										return response()->json([
 											'status' => 0,
-											'respuesta' => 'El numero de caracteres en las instrucciones debe ser mayor a 2',
+											'respuesta' => 'El numero de caracteres indicado para la instrucción 1 (renglón 1 del archivo) debe ser mayor a 1 y menor a 51',
+										]);
+										break 2;
+									}
+									if(intval($lineOne[1]) < 2 || intval($lineOne[1]) > 50){
+										return response()->json([
+											'status' => 0,
+											'respuesta' => 'El numero de caracteres indicado para la instrucción 2 (renglón 1 del archivo) debe ser mayor a 1 y menor a 51',
 										]);
 										break 2;
 									}
 									//Minimo de caracteres
-									if(intval($lineOne[2]) < 3){
+									if(intval($lineOne[2]) < 3  || intval($lineOne[2]) > 5000){
 										return response()->json([
 											'status' => 0,
-											'respuesta' => 'El numero de caracteres en el mensaje debe ser mayor a 3',
+											'respuesta' => 'El numero de caracteres indicado para el mensaje (renglón 1 del archivo) debe ser mayor a 2 y menor a 5001',
 										]);
 										break 2;
 									}
@@ -123,9 +163,22 @@ class MainController extends Controller
 									if(strlen($instrucciones[0]) != intval($lineOne[0])){
 										return response()->json([
 											'status' => 0,
-											'respuesta' => 'La primer instrucción no tiene la cantidad de caracteres indicada',
+											'respuesta' => 'La primera instrucción (segundo renglón del archivo) debe tener una longitud de '.$lineOne[0].' caracteres',
 										]);
 										break 2;
+									}
+									//Caracteres repetidos
+									$insArray = str_split($instrucciones[0]);
+									foreach($insArray as $indice => $letra){
+										if($indice > 0){
+											if($insArray[$indice-1] == $letra){
+												return response()->json([
+													'status' => 0,
+													'respuesta' => 'La primera instrucción (segundo renglón del archivo) no debe contener caracteres iguales seguidos',
+												]);
+												break 2; 
+											}
+										}
 									}
 									break 1;
 								case 2:
@@ -134,9 +187,22 @@ class MainController extends Controller
 									if(strlen($instrucciones[1]) != intval($lineOne[1])){
 										return response()->json([
 											'status' => 0,
-											'respuesta' => 'La segunda instrucción no tiene la cantidad de caracteres indicada',
+											'respuesta' => 'La segunda instrucción (tercer renglón del archivo) debe tener una longitud de '.$lineOne[1].' caracteres',
 										]);
 										break 2;
+									}
+									//Caracteres repetidos
+									$insArray = str_split($instrucciones[1]);
+									foreach($insArray as $indice => $letra){
+										if($indice > 0){
+											if($insArray[$indice-1] == $letra){
+												return response()->json([
+													'status' => 0,
+													'respuesta' => 'La segunda instrucción (tercer renglón del archivo) no debe contener caracteres iguales seguidos',
+												]);
+												break 2; 
+											}
+										}
 									}
 									break 1;
 								case 3:
@@ -145,7 +211,7 @@ class MainController extends Controller
 									if(strlen($mensaje) != intval($lineOne[2])){
 										return response()->json([
 											'status' => 0,
-											'respuesta' => 'El mensaje no tiene la cantidad de caracteres indicada',
+											'respuesta' => 'El mensaje (cuarto renglón del archivo) debe tener una longitud de '.$lineOne[2].' caracteres',
 										]);
 										break 2;
 									}
@@ -153,7 +219,7 @@ class MainController extends Controller
 									if(preg_match('/[^A-Za-z0-9]/', $mensaje)){
 										return response()->json([
 											'status' => 0,
-											'respuesta' => 'El mensaje contiene caracteres no permitidos',
+											'respuesta' => 'El mensaje (cuarto renglón del archivo) solo debe contener caracteres alfanuméricos',
 										]);
 										break 2;
 									}
@@ -165,25 +231,43 @@ class MainController extends Controller
 											if($mensajeArray[$indice-1] != $letra){
 												$mensaje .= $letra; 
 											}
+										} else {
+											$mensaje .= $letra;
 										}
 									}
+									break 1;
+								default:
+									return response()->json([
+										'status' => 0,
+										'respuesta' => 'El archivo no debe contener más de 4 renglones',
+									]);
 									break 1;
 							}
 															
 						}
 						//Buscar instrucciones en mensaje
 						$responseIns = [];
+						$noInsInMsg = 0;
 						foreach($instrucciones as $indice => $instruccion){							
 							if(stristr($mensaje, $instruccion)){
 								array_push($responseIns,'SI<br/>');
+								$noInsInMsg++;
 							} else{
 								array_push($responseIns,'NO<br/>');
 							}
 						}
-						return response()->json([
-							'status' => 1,
-							'respuesta' => $responseIns,
-						]);
+						//Numero de instrucciones en mensaje
+						if($noInsInMsg > 1){
+							return response()->json([
+								'status' => 0,
+								'respuesta' => 'El mensaje no debe contener más de una instrucción',
+							]);
+						} else {
+							return response()->json([
+								'status' => 1,
+								'respuesta' => $responseIns,
+							]);
+						}
 					} else {
 						return response()->json([
 							'status' => 0,

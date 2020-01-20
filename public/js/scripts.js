@@ -22,7 +22,8 @@ $(document).ready(function() {
                 $('#msgSuccess').hide();
                 $('#msgError').hide();
             },
-            success: function(data){		        	
+            success: function(data){
+                console.log(data);	        	
                 if(data.status){
                     $('#msgSuccess').html(data.respuesta);
                     $('#msgSuccess').fadeIn(200);
